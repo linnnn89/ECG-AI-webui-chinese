@@ -1,0 +1,33 @@
+# local environment
+.venv/
+.env
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# data and model files
+data/ptbxl/
+models/
+models_fine/
+outputs/
+outputs_fine/
+
+# large model/checkpoint files
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# third-party external tools
+third_party/
+
+# Windows / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
