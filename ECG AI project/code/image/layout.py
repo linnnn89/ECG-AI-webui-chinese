@@ -11,9 +11,9 @@ def _dedup(xs, tol):
 
 def auto_detect(img_bgr):
     """返回: (layout, meta)
-    layout ∈ {"3x4","6x6","unknown"}
+    layout ∈ {"3x4","6x2","unknown"}
     meta: {"sep_count":..., "W":..., "H":..., "rhythm_score":...}
-    规则：统计长竖分隔线数量。≈3条→4列(3×4)，≈5条→6列(6×6)。
+    规则：统计长竖分隔线数量。≈3条→4列(3×4)，≈5条→6列(6×2)。
     """
     h, w = img_bgr.shape[:2]
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
@@ -48,7 +48,7 @@ def auto_detect(img_bgr):
 
     layout = "unknown"
     if sep_count >= 4:      # ~5条 → 6列
-        layout = "6x6"
+        layout = "6x2"
     elif sep_count >= 3:    # ~3条 → 4列
         layout = "3x4"
 

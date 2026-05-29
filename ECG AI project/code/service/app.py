@@ -624,8 +624,8 @@ async def infer_image(file: UploadFile = File(...), layout: str = Form("auto")):
             lay = detect_layout(tmp.name)
         elif layout == "3x4":
             lay = Layout.L3x4
-        elif layout == "6x6":
-            lay = Layout.L6x6
+        elif layout == "6x2":
+            lay = Layout.L6x2
         else:
             lay = Layout.UNK
 
@@ -640,12 +640,12 @@ async def infer_image(file: UploadFile = File(...), layout: str = Form("auto")):
                     requested_layout=layout,
                 ),
             )
-        if lay == Layout.L6x6 and DIGITIZER_BACKEND != "ahus":
+        if lay == Layout.L6x2 and DIGITIZER_BACKEND != "ahus":
             raise HTTPException(
                 status_code=501,
                 detail=_image_error_detail(
                     "IMAGE_LAYOUT_UNSUPPORTED",
-                    "当前服务暂不支持 6+6 心电图版式的图片诊断。",
+                    "当前服务暂不支持 6×2 心电图版式的图片诊断。",
                     "请上传完整 3x4 版式的 12 导联心电图图片，或改用 WFDB/数字 ECG 文件。",
                     filename=file.filename,
                     detected_layout=lay.value,

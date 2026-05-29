@@ -46,7 +46,7 @@ ECG AI project/
 │ ├─ service
 │ │ ├─ app.py # FastAPI：/health /infer_record /infer_wfdb_files /infer_xml /infer_image + /ui
 │ │ ├─ config.py # 路径与开关（模型、Digitiser、目标长度等）
-│ │ ├─ layout.py # 轻量版式检测（3×4/6×6/unknown，占位可替换）
+│ │ ├─ layout.py # 轻量版式检测（3×4/6×2/unknown，占位可替换）
 │ │ ├─ digitize.py # 图片→波形 适配层（调用 ECG-Digitiser）
 │ │ ├─ xml_ecg.py # ECG XML→WFDB→[12,5000] 适配层
 │ │ └─ ui\index.html # 本地Web UI
@@ -205,7 +205,7 @@ uvicorn code.service.app:APP --host 127.0.0.1 --port 8000
 - `POST /infer_record` -> `{"record":"records500/00000/00001_hr"}`
 - `POST /infer_wfdb_files` -> multipart form, same-record `.hea` plus `.dat/.mat`
 - `POST /infer_xml` -> multipart form, HL7 AnnotatedECG XML with 12-lead waveform
-- `POST /infer_image` -> multipart form, ECG image `png/jpg/bmp/tiff`, optional `layout=auto|3x4|6x6`
+- `POST /infer_image` -> multipart form, ECG image `png/jpg/bmp/tiff`, optional `layout=auto|3x4|6x2`
 
 当前 `START.BAT` 默认设置 `ECG_DIGITIZER_BACKEND=ahus`，因此从启动脚本打开服务时图片入口会进入 Ahus/Open-ECG-Digitizer 自动版式识别流程。若手动启动 uvicorn 且未设置该环境变量，则默认仍为 `none`，图片入口会返回 501 配置提示。
 
@@ -223,7 +223,7 @@ uvicorn code.service.app:APP --host 127.0.0.1 --port 8000
 ```json
 {
   "source": "wfdb|wfdb_upload|xml|image",
-  "layout": "n/a|3x4|6x6|unknown",
+  "layout": "n/a|3x4|6x2|unknown",
   "record": "<basename>",
   "classes": [...],
   "prob": {"NORM":0.12, ...},
@@ -347,7 +347,7 @@ torch._inductor.exc.TritonMissing：Windows 环境下 torch.compile 兼容性较
 ## 十一、路线图
  引入 OneCycleLR 学习率调度器
 
- 6×6 版式训练 M6x6（ECG-Image-Kit 合成→nnU-Net 微调）
+ 6×2 版式训练 M6x2（ECG-Image-Kit 合成→nnU-Net 微调）
 
  增加 ResNet1D 基线并可切换
 

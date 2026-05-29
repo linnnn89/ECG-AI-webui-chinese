@@ -2,7 +2,7 @@
 """
 layout.py
 最小可用的版式判别器：
-- 先支持 "3x4"（3行×4列）与 "6x6"（2页或单页6+6）的粗判；
+- 先支持 "3x4"（3行×4列）与 "6x2"（6列×2行）的粗判；
 - 通过霍夫变换统计长直立分隔线数量来估计列数；
 - 判不出则返回 unknown。
 后续要扩展：网格线估计、节律条定位、OCR导联名等。
@@ -12,7 +12,7 @@ import cv2, numpy as np
 
 class Layout(str, Enum):
     L3x4 = "3x4"
-    L6x6 = "6x6"
+    L6x2 = "6x2"
     UNK  = "unknown"
 
 def _count_vertical_separators(img):
@@ -43,7 +43,7 @@ def detect_layout(img_path:str) -> Layout:
     img = cv2.imread(img_path)
     if img is None: return Layout.UNK
     k = _count_vertical_separators(img)
-    # 粗判：3×4有3条竖分隔（→4列），6×6常见有5条（→6列）
+    # 粗判：3×4有3条竖分隔（→4列），6×2常见有5条（→6列）
     if 2 <= k <= 4: return Layout.L3x4
-    if 5 <= k <= 7: return Layout.L6x6
+    if 5 <= k <= 7: return Layout.L6x2
     return Layout.UNK
