@@ -342,7 +342,7 @@ Digitiser未配置：默认返回 501；检查 `ECG_DIGITIZER_BACKEND`、Felix/A
 
 torch._inductor.exc.TritonMissing：Windows 环境下 torch.compile 兼容性较差。若遇到此报错，请在 train_5cls.py 中注释掉 torch.compile 相关代码。
 
-训练第一轮很慢：程序正在将 21799 条 WFDB 记录转换为缓存文件（.npy），第二轮起速度会大幅提升。
+训练第一轮很慢：程序正在将 WFDB 记录转换为缓存文件（.npy），第二轮起速度会大幅提升。
 
 ## 十一、路线图
  引入 OneCycleLR 学习率调度器
