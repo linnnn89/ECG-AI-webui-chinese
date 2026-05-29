@@ -36,7 +36,7 @@ start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Second
 echo [3/4] Starting FastAPI service on 127.0.0.1:8000...
 echo ======================================================
 echo   ECG inference backend is running.
-echo   Hardware target: NVIDIA RTX 50-series, CUDA 12.x+
+echo   Runtime: local Python environment; GPU is optional.
 echo   WebUI: http://127.0.0.1:8000/ui/
 echo ======================================================
 

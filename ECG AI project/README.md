@@ -1,4 +1,4 @@
-﻿# ECG AI Project（本地部署）  
+# ECG AI Project（本地部署）
 心电图 **WFDB/XML/图片→波形→多标签诊断→中文报告**。可离线运行。
 
 ---
@@ -6,12 +6,12 @@
 ## 一、系统架构
 
 **输入路径：**
-1) **WFDB 文件上传**：`/infer_wfdb_files`
-2) **ECG XML 上传**：`/infer_xml`，服务端临时转换为 WFDB 后进入 ONNX 推理
-3) **图片上传**（安全骨架阶段）：`/infer_image`  
-   - 默认不启用图像数字化后端；未配置时返回 501 提示，不影响 WFDB 推理服务
+1. **WFDB 文件上传**：`/infer_wfdb_files`
+2. **ECG XML 上传**：`/infer_xml`，服务端临时转换为 WFDB 后进入 ONNX 推理
+3. **图片上传**（安全骨架阶段）：`/infer_image`
+   - 手动启动服务时默认不启用图像数字化后端；未配置时返回 501 提示，不影响 WFDB 推理服务
    - 后端预留：`none | felix | ahus`
-4) **PTB-XL 相对路径记录**（兼容接口）：`/infer_record`
+4. **PTB-XL 相对路径记录**（兼容接口）：`/infer_record`
 
 **核心模型：** InceptionTime-style 1D CNN（PyTorch 训练，ONNX 推理）
 
@@ -29,12 +29,14 @@
 
 **安全拒判层：** 服务端默认启用低置信度不确定输出，不改变原诊断阈值。当 10 类均未达到各自阈值，且模型不能给出可靠阳性/正常结论时，返回 `UNKNOWN`，并提示“结果高度不确定，建议进一步参考人工评估或完善检查资料”。其中最高类别概率低于 `ECG_UNCERTAINTY_MAX_PROB`（默认 `0.30`）时，标记为 `low_confidence_all_classes`。
 
-**服务：** FastAPI + onnxruntime  
+**服务：** FastAPI + onnxruntime
 **前端：** 纯静态页面 `/ui/`
 
 ---
 
 ## 二、目录结构
+
+下列结构包含公开代码、建议数据目录和本地生成产物。GitHub 仓库不附带原始数据、模型权重、真实 CaseBank 索引或第三方 digitizer 运行环境。
 
 ```text
 ECG AI project/
@@ -53,14 +55,14 @@ ECG AI project/
 │ ├─ tools
 │ │ ├─ ptbxl_fetch.py # 抽样下载 PTB-XL WFDB 记录
 │ │ ├─ ptbxl_prepare_labels.py # 5类标签（保留）
-│ │ ├─ ptbxl_prepare_labels_fine.py# 10类细粒度标签（当前默认）
+│ │ ├─ ptbxl_prepare_labels_fine.py # 10类细粒度标签（当前默认）
 │ │ ├─ calc_thresholds.py # 验证集阈值标定
 │ │ ├─ infer_and_report.py # 批量推理→CSV+中文报告
 │ │ ├─ export_onnx.py # 导出 ONNX（含权重）
 │ │ ├─ onnx_eval.py # ONNX⇄PyTorch 一致性+指标
-│ │ └─ infer_digitiser_output.py# 直接跑 Digitiser 输出的桥接脚本
+│ │ └─ infer_digitiser_output.py # 直接跑 Digitiser 输出的桥接脚本
 │ └─ train_5cls.py # 训练脚本（自动适配 5/10 类）
-├─ data
+├─ data # 本地数据目录；公共数据需自行下载
 │ ├─ ptbxl
 │ │ ├─ ptbxl_database.csv / scp_statements.csv / RECORDS
 │ │ ├─ wfdb\records500...*.hea|*.dat
@@ -69,13 +71,10 @@ ECG AI project/
 │ ├─ chapman / chapman_converted
 │ ├─ challenge_2020
 │ └─ README.md # 数据目录说明；医院 ECG 数据不随 GitHub 公开发布
-├─ models # 5类模型与文件（若有）
-├─ models_fine # 10类初版模型与文件（baseline，保留只读）
-├─ models_fine_chapman_ft # Chapman 增量训练后的 V2 模型（保留用于对照）
-├─ models_internal* # 本地内部候选模型目录示意；使用医院数据训练/微调的模型权重不随 GitHub 发布
+├─ models* # 本地模型目录；权重文件不随 GitHub 发布
 ├─ ecg_xml_to_wfdb.py # 根目录 XML 转 WFDB / NPY 工具
-├─ outputs / outputs_fine # 推理输出与报告
-├─ third_party\ECG-Digitiser # 图像数字化工具及其 .ecgdig 环境
+├─ outputs / outputs_fine # 本地推理输出与报告，不随 GitHub 发布
+├─ third_party\... # 可选第三方 digitizer 本地目录，不随 GitHub 发布
 └─ README.md
 ```
 
@@ -116,7 +115,7 @@ python .\code\tools\ptbxl_fetch.py --ptb .\data\ptbxl --subset 200 --band hr
 
 ### 4.2 生成标签并训练模型
 
-本项目支持 5 类（演示） 与 10 类（细粒度） 自动适配。训练脚本已升级为 V2 版本，引入了 OneCycleLR 调度器与 AMP 混合精度加速，显著提升了在 RTX 50 系列显卡上的收敛速度。
+本项目支持 5 类（演示）与 10 类（细粒度）自动适配。训练脚本支持 OneCycleLR 调度器与 AMP 混合精度，可根据本机显存和验证集表现调整 batch size、epoch 和学习率。
 
 1. 准备标签地图 (CSV)
 根据需求运行对应的脚本生成“地图文件”，程序将自动指向 500Hz 高频数据：
@@ -135,10 +134,10 @@ python .\code\tools\ptbxl_prepare_labels.py --ptb .\data\ptbxl --band hr
 
 2. 启动模型训练
 
-利用 RTX 5070ti 的性能，建议使用 batch 64。由于使用了 OneCycle 策略，通常 15 轮即可达到最佳效果。
+训练参数需要按显存和数据规模调整。可以从 `batch=32` 或 `batch=64`、`epochs=15` 起步，再根据验证集指标继续调参。
 
 ```powershell
-# --amp: 开启混合精度加速  --batch 64: 针对高性能显存优化
+# --amp: 开启混合精度加速；batch 可按显存调整
 python .\code\train_5cls.py --ptb ".\data\ptbxl" --out ".\models_fine" --epochs 15 --batch 64 --amp
 ```
 
@@ -256,7 +255,7 @@ $env:ECG_UNCERTAINTY_MAX_PROB = "0.30"
 
 解释口径：该层用于服务安全和后续科研记录，不等于新增第 11 个训练标签，也不参与当前 10 类阈值标定。AFIB、PAC、PVC 等暂未纳入 10 类体系的明确异常数据，后续可作为 out-of-scope abnormal 验证集，用于校准不确定输出阈值。
 
-图片链路当前状态：`START.BAT` 默认启用 Ahus；Felix 保留为实验/备选后端。图片数字化必须先通过完整度与质量门槛，低质量或导联不完整时返回结构化错误，不进入 ONNX 诊断。历史图片链路测试记录已拆到内部 study-paper CHANGELOG，不随 GitHub README 发布。
+图片链路当前状态：`START.BAT` 默认启用 Ahus；Felix 保留为实验/备选后端。图片数字化必须先通过完整度与质量门槛，低质量或导联不完整时返回结构化错误，不进入 ONNX 诊断。历史图片链路测试记录保存在内部研究日志中，不随 GitHub README 发布。
 
 图片识别失败时，`/infer_image` 返回面向用户的结构化错误，而不是只返回工程日志。例如：
 
@@ -276,7 +275,7 @@ $env:ECG_UNCERTAINTY_MAX_PROB = "0.30"
 
 前端 UI 会显示 `message`、`suggestion` 和 `error_code`；`technical_detail` 保留给调试与科研记录。
 
-当前公开 README 只描述图片入口的安全行为。具体本地测试图片、失败比例、wrapper 试错过程和后端复测结果保存在内部研究 CHANGELOG。
+当前公开 README 只描述图片入口的安全行为。具体本地测试图片、失败比例、wrapper 试错过程和后端复测结果保存在内部研究日志中。
 
 ## 六、推理与报告（批量）
 
@@ -306,9 +305,9 @@ $env:ECG_DIGITIZER_BACKEND = "ahus"   # third_party/Open-ECG-Digitizer，当前 
 
 - `none`：默认状态。服务可启动，WFDB 推理可用，图片入口返回配置提示。
 - `felix`：封装现有 `third_party/ECG-Digitiser`，只读调用其 CLI，适合作为高质量扫描件/3×4 候选。
-- `ahus`：Ahus-AIM Open-ECG-Digitizer，已独立 clone 到 `third_party/Open-ECG-Digitizer`，当前通过 `.venv310` 跑通 CPU 推理和 CSV 输出。
+- `ahus`：Ahus-AIM Open-ECG-Digitizer，可在本地配置为图片数字化后端；若依赖、权重或虚拟环境未准备好，图片入口会返回结构化错误。
 
-历史图片链路测试、layout 修复、Python 3.13 no-Ray patch、Felix/Ahus 对比和本地测试图片结果已拆到内部 study-paper CHANGELOG。公开 README 保留当前接口、当前默认后端和安全拒判原则即可。
+历史图片链路测试、layout 修复、Felix/Ahus 对比和本地测试图片结果保存在内部研究日志中。公开 README 只保留当前接口、后端配置方式和安全拒判原则。
 
 ## 八、配置切换
 
@@ -345,25 +344,18 @@ torch._inductor.exc.TritonMissing：Windows 环境下 torch.compile 兼容性较
 训练第一轮很慢：程序正在将 WFDB 记录转换为缓存文件（.npy），第二轮起速度会大幅提升。
 
 ## 十一、路线图
- 引入 OneCycleLR 学习率调度器
 
- 6×2 版式训练 M6x2（ECG-Image-Kit 合成→nnU-Net 微调）
+- 继续完善 OneCycleLR、AMP、数据增强和长训配置。
+- 完善 6×2 图片版式训练与版式识别。
+- 增加 ResNet1D 等基线模型并支持切换。
+- 增加 AUPRC、类别级灵敏度/特异度和置信区间汇报。
+- 增加 NSSM/Windows 服务或托盘启动等打包部署方案。
+- 完善图片合规模块，包括遮挡检测、分辨率校验和走纸参数识别。
+- Challenge 2020 / CPSC 数据转换与训练需由读者按 `data/README.md` 中的官方来源在本地完成下载、QC 和转换。
 
- 增加 ResNet1D 基线并可切换
+## 十二、本地病例检索与 LLM 报告层（设计与当前状态）
 
- 长训 + OneCycle + 数据增强（漂移/噪声/拉伸）
-
- AUPRC 与类别级灵敏度/特异度汇报
-
- 打包部署：NSSM/Windows 服务或托盘启动
-
-影像合规模块：遮挡检测、分辨率校验、走纸参数识别
-
-Challenge 2020 / CPSC 数据下载、转换、V3 训练：训练暂缓，下载可继续。公开仓库不附带本地下载脚本；读者应按 `data/README.md` 中的官方 PhysioNet 链接下载 PTB-XL、Chapman-Shaoxing 和 Challenge 2020/CPSC2018，并在本地完成 QC 与转换。
-
-## 十二、后续备选设计：本地病例检索与 LLM 报告层（目前未加入）
-
-目标：在纯数字 ECG/WFDB 主线稳定后，引入本地小模型（如 Qwen、Gemma、DeepSeek 等）作为中文报告生成与解释层；InceptionTime/ONNX 继续承担主要诊断判别职责，避免直接把 12 导联原始浮点序列全文本化后交给 LLM。
+目标：在 InceptionTime/ONNX 主诊断链路之外，提供相似病例检索和可选本地 LLM 报告层。InceptionTime/ONNX 继续承担主要诊断判别职责；LLM 只消费结构化结果和检索摘要，不直接接管 12 导联原始波形判断。
 
 推荐架构：
 
@@ -409,7 +401,7 @@ zscore(probabilities) + zscore(threshold margins) + zscore(basic waveform featur
 
 CaseBank 当前运行原则是纯向量检索：只用 85 维检索向量的 cosine similarity 排序，不使用模型预测标签进行候选过滤或重排序。结果默认使用 `ECG_CASEBANK_SCORE_THRESHOLD=0.0` 返回最近 top-k；不足 10 个时不硬凑，并在 JSON `warnings` 中说明。MVP-1 再考虑 `forward_features()`、ONNX embedding 输出和 embedding 主导的检索，但仍需保持“标签不参与检索排序”的边界，除非另设对照实验。
 
-CaseBank MVP 调试命令、早期 CSV 草案、public-dataset reference 构建数量和 smoke evaluation 结果已拆到内部 study-paper CHANGELOG。公开 README 只保留当前接口边界；公开发布时不包含任何医院来源 CaseBank 索引、医院 ECG 渲染图或医院训练模型输出。
+CaseBank MVP 调试命令、早期 CSV 草案、public-dataset reference 构建数量和 smoke evaluation 结果保存在内部研究日志中。公开 README 只保留当前接口边界；公开发布时不包含任何医院来源 CaseBank 索引、医院 ECG 渲染图或医院训练模型输出。
 
 推理时流程：
 
