@@ -26,6 +26,7 @@ __pycache__/
 *.ckpt
 
 # Hospital/private ECG research data - keep local.
+/ECG AI project/data/ECG/software_validation_exam_20cases_20260529/
 /ECG AI project/data/ECG/
 /ECG AI project/data/casebank_vector_index/
 /ECG AI project/data/casebank_display_assets/

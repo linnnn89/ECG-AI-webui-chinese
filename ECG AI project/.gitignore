@@ -29,6 +29,7 @@ casebank_cache/
 *.ckpt
 
 # Hospital/private research data - do not upload to GitHub
+data/ECG/software_validation_exam_20cases_20260529/
 data/ECG/
 data/casebank_vector_index/
 data/casebank_display_assets/

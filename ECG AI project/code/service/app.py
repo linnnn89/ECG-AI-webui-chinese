@@ -297,22 +297,18 @@ def _casebank_payload(record_id: str, prob: np.ndarray, model_x: np.ndarray | No
 
     margins = np.asarray(prob, dtype=np.float32) - THR
     wave_features = extract_basic_wave_features(model_x)
-    decision = _classify_prob(prob)
-    top_order = np.argsort(-np.asarray(prob, dtype=np.float32))[:2]
-    top_labels = [CLASSES[int(i)] for i in top_order]
     result = SearchEngine(store).search(
         probabilities=prob,
         margins=margins,
         wave_features=wave_features,
-        predicted_labels=decision["labels"] if not decision["uncertain"] else [],
-        top_probability_labels=top_labels,
+        predicted_labels=[],
         query_case_id=record_id,
         query_record_path=None,
         top_k=CASEBANK_TOP_K,
         prefetch_k=300,
         min_candidates=50,
         score_threshold=CASEBANK_SCORE_THRESHOLD,
-        ablation="full",
+        ablation="pure_vector",
     )
     matches = []
     for item in result.similar_cases:

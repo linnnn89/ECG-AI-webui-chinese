@@ -89,7 +89,7 @@ def _summarize(rows: List[Dict[str, object]], classes: List[str]) -> Dict[str, o
 def evaluate_casebank(args: argparse.Namespace) -> Dict[str, object]:
     store = CaseBankStore.load(os.path.abspath(args.casebank))
     engine = SearchEngine(store)
-    modes = ["margin_only", "retrieval_only", "full"] if args.ablation == "all" else [args.ablation]
+    modes = ["retrieval_only"]
     query_indices = _query_indices(store, args.split)
     if args.limit > 0:
         query_indices = query_indices[: args.limit]
@@ -164,7 +164,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min_candidates", type=int, default=50)
     parser.add_argument("--score_threshold", type=float, default=0.55)
     parser.add_argument("--exclude_same_patient", type=int, choices=[0, 1], default=1)
-    parser.add_argument("--ablation", choices=["all", "margin_only", "retrieval_only", "full"], default="all")
+    parser.add_argument("--ablation", choices=["retrieval_only"], default="retrieval_only")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--out_csv", default=os.path.join(root, "runs", "casebank_eval.csv"))
     parser.add_argument("--out_json", default=os.path.join(root, "runs", "casebank_eval_summary.json"))

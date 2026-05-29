@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 
@@ -11,10 +11,7 @@ from .io import load_case_rows, read_json, validate_casebank_dir
 from .schema import CaseRecord, SearchResult, SimilarCase
 from .similarity import (
     batch_cosine_similarity_01,
-    cosine_similarity_01,
-    jaccard_labels,
     score_level,
-    wave_similarity_01,
 )
 
 
@@ -79,10 +76,6 @@ class CaseBankStore:
         return zscore(np.asarray(wave_features, dtype=np.float32), self.vector_stats["wave_features"])
 
 
-def _case_label_set(case: CaseRecord) -> Set[str]:
-    return set(case.labels) | set(case.predicted_labels)
-
-
 def _bad_signal_quality(case: CaseRecord) -> bool:
     q = case.signal_quality or {}
     return bool(q.get("bad") is True or str(q.get("quality", "")).lower() == "bad")
@@ -104,7 +97,6 @@ class SearchEngine:
         wave_features: np.ndarray,
         retrieval_vector: Optional[np.ndarray] = None,
         predicted_labels: Optional[List[str]] = None,
-        top_probability_labels: Optional[List[str]] = None,
         query_case_id: Optional[str] = None,
         query_record_path: Optional[str] = None,
         query_patient_id_hash: Optional[str] = None,
@@ -112,9 +104,9 @@ class SearchEngine:
         prefetch_k: int = 200,
         min_candidates: int = 50,
         score_threshold: float = 0.55,
-        ablation: str = "full",
+        ablation: str = "retrieval_only",
     ) -> SearchResult:
-        if ablation not in {"full", "retrieval_only", "margin_only"}:
+        if ablation not in {"retrieval_only", "pure_vector"}:
             raise ValueError(f"Unsupported ablation mode: {ablation}")
 
         probabilities = np.asarray(probabilities, dtype=np.float32)
@@ -126,19 +118,9 @@ class SearchEngine:
             else self.store.make_query_vector(probabilities, margins, wave_features)
         )
         predicted_labels = list(predicted_labels or [])
-        top_probability_labels = list(top_probability_labels or [])
         warnings: List[str] = []
-        if not predicted_labels:
-            if top_probability_labels:
-                warnings.append(
-                    "No class passed threshold; top-2 probability labels were used for candidate filtering."
-                )
-            filter_labels = set(top_probability_labels)
-        else:
-            filter_labels = set(predicted_labels)
 
-        base_indices = []
-        label_filtered = []
+        candidate_indices = []
         normalized_query_record = os.path.normcase(os.path.normpath(query_record_path)) if query_record_path else None
         for idx, case in enumerate(self.store.cases):
             if query_case_id and case.case_id == query_case_id:
@@ -150,64 +132,25 @@ class SearchEngine:
                 continue
             if _bad_signal_quality(case):
                 continue
-            base_indices.append(idx)
-            if not filter_labels or (_case_label_set(case) & filter_labels):
-                label_filtered.append(idx)
-
-        candidate_indices = label_filtered
-        if len(candidate_indices) < min_candidates and len(base_indices) > len(candidate_indices):
-            warnings.append(
-                f"Candidate count {len(candidate_indices)} was below min_candidates={min_candidates}; label filter was relaxed."
-            )
-            candidate_indices = base_indices
+            candidate_indices.append(idx)
 
         if not candidate_indices:
-            warnings.append("No candidate cases were available after filtering.")
+            warnings.append("No candidate cases were available after self/same-patient/quality exclusion.")
             return SearchResult(query=self._query_payload(probabilities, margins, predicted_labels), similar_cases=[], warnings=warnings)
 
         candidate_indices_np = np.asarray(candidate_indices, dtype=np.int64)
         retrieval_sims = batch_cosine_similarity_01(
             retrieval_vector, self.store.retrieval_vectors[candidate_indices_np]
         )
-        prefetch_order = np.argsort(-retrieval_sims)[: max(1, min(prefetch_k, len(candidate_indices)))]
-        prefetched = candidate_indices_np[prefetch_order]
-        prefetched_retrieval_sims = retrieval_sims[prefetch_order]
-
-        query_wave_z = self.store.standardized_wave_features(wave_features)
-        query_label_for_overlap = set(predicted_labels) if predicted_labels else set(top_probability_labels)
-        scored = []
-        for local_idx, case_idx in enumerate(prefetched):
-            case = self.store.cases[int(case_idx)]
-            retrieval_cos = float(prefetched_retrieval_sims[local_idx])
-            margin_cos = cosine_similarity_01(margins, self.store.margins[int(case_idx)])
-            label_overlap = jaccard_labels(query_label_for_overlap, _case_label_set(case))
-            case_wave_z = self.store.standardized_wave_features(self.store.wave_features[int(case_idx)])
-            wave_sim = wave_similarity_01(query_wave_z, case_wave_z)
-            if ablation == "retrieval_only":
-                final_score = retrieval_cos
-            elif ablation == "margin_only":
-                final_score = margin_cos
-            else:
-                final_score = (
-                    0.50 * retrieval_cos
-                    + 0.25 * margin_cos
-                    + 0.20 * label_overlap
-                    + 0.05 * wave_sim
-                )
-            scored.append(
-                (
-                    float(final_score),
-                    int(case_idx),
-                    {
-                        "retrieval_cosine": round(float(retrieval_cos), 6),
-                        "margin_cosine": round(float(margin_cos), 6),
-                        "label_overlap": round(float(label_overlap), 6),
-                        "wave_similarity": round(float(wave_sim), 6),
-                    },
-                )
+        order = np.argsort(-retrieval_sims)[: max(1, min(prefetch_k, len(candidate_indices)))]
+        scored = [
+            (
+                float(retrieval_sims[int(local_idx)]),
+                int(candidate_indices_np[int(local_idx)]),
+                {"retrieval_cosine": round(float(retrieval_sims[int(local_idx)]), 6)},
             )
-
-        scored.sort(key=lambda item: item[0], reverse=True)
+            for local_idx in order
+        ]
         visible = [item for item in scored if item[0] >= score_threshold][:top_k]
         if len(visible) < top_k:
             warnings.append(
@@ -256,20 +199,18 @@ class SearchEngine:
         min_candidates: int = 50,
         score_threshold: float = 0.55,
         exclude_same_patient: bool = True,
-        ablation: str = "full",
+        ablation: str = "retrieval_only",
     ) -> SearchResult:
         case = self.store.cases[row_id]
         prob = self.store.probabilities[row_id]
         margins = self.store.margins[row_id]
         wave = self.store.wave_features[row_id]
-        top_labels = self._top_probability_labels(prob)
         return self.search(
             probabilities=prob,
             margins=margins,
             wave_features=wave,
             retrieval_vector=self.store.retrieval_vectors[row_id],
             predicted_labels=case.predicted_labels,
-            top_probability_labels=top_labels,
             query_case_id=case.case_id,
             query_record_path=case.record_path,
             query_patient_id_hash=case.patient_id_hash if exclude_same_patient else None,
@@ -279,10 +220,6 @@ class SearchEngine:
             score_threshold=score_threshold,
             ablation=ablation,
         )
-
-    def _top_probability_labels(self, probabilities: np.ndarray, n: int = 2) -> List[str]:
-        order = np.argsort(-np.asarray(probabilities, dtype=np.float32))[:n]
-        return [self.store.classes[int(i)] for i in order]
 
     def _query_payload(
         self,

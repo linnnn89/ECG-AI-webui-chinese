@@ -11,9 +11,7 @@ from code.casebank.inference import (
     load_npy_tensor,
     load_runtime,
     load_wfdb_tensor,
-    predicted_labels,
     project_root,
-    top_probability_labels,
 )
 from code.casebank.io import search_result_to_dict, write_json
 from code.casebank.search import CaseBankStore, SearchEngine
@@ -43,24 +41,20 @@ def search_casebank(args: argparse.Namespace) -> dict:
     margins = probabilities - runtime.threshold_array
     wave_features = extract_basic_wave_features(x)
     retrieval_vector = store.make_query_vector(probabilities, margins, wave_features)
-    pred_labels = predicted_labels(runtime.classes, probabilities, runtime.thresholds)
-    top2 = top_probability_labels(runtime.classes, probabilities, n=2)
-
     engine = SearchEngine(store)
     result = engine.search(
         probabilities=probabilities,
         margins=margins,
         wave_features=wave_features,
         retrieval_vector=retrieval_vector,
-        predicted_labels=pred_labels,
-        top_probability_labels=top2,
+        predicted_labels=[],
         query_case_id=query_case_id,
         query_record_path=query_record_path,
         top_k=args.top_k,
         prefetch_k=args.prefetch_k,
         min_candidates=args.min_candidates,
         score_threshold=args.score_threshold,
-        ablation="full",
+        ablation="retrieval_only",
     )
     payload = search_result_to_dict(result)
     payload["query"]["record_path"] = args.record

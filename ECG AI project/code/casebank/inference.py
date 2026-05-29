@@ -177,9 +177,3 @@ def predicted_labels(classes: List[str], probabilities: np.ndarray, thresholds: 
     if "NORM" in labels and any(label != "NORM" for label in labels):
         labels = [label for label in labels if label != "NORM"]
     return labels
-
-
-def top_probability_labels(classes: List[str], probabilities: np.ndarray, n: int = 2) -> List[str]:
-    prob = np.asarray(probabilities, dtype=np.float32)
-    order = np.argsort(-prob)[:n]
-    return [classes[int(i)] for i in order]

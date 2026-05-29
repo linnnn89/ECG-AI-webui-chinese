@@ -52,8 +52,8 @@ def _write_synthetic_casebank(tmp_path):
             "record_path": "records500/00000/00003_hr",
             "patient_id_hash": "p2",
             "split": "train",
-            "labels": ["A"],
-            "predicted_labels": ["A"],
+            "labels": ["B"],
+            "predicted_labels": ["B"],
             "probabilities": {"A": 0.87, "B": 0.13},
             "margins": {"A": 0.37, "B": -0.37},
             "signal_quality": {},
@@ -101,7 +101,7 @@ def _write_synthetic_casebank(tmp_path):
 
 
 class CaseBankSearchTests(unittest.TestCase):
-    def test_search_excludes_self_and_same_patient_without_padding(self):
+    def test_search_is_pure_vector_and_excludes_self_and_same_patient(self):
         with tempfile.TemporaryDirectory() as tmp:
             casebank = _write_synthetic_casebank(Path(tmp))
             engine = SearchEngine(CaseBankStore.load(str(casebank)))
@@ -112,6 +112,9 @@ class CaseBankSearchTests(unittest.TestCase):
                 score_threshold=0.55,
                 exclude_same_patient=True,
             )
+            # The closest remaining vector is returned even though its labels do
+            # not overlap with the query; CaseBank retrieval must not use labels
+            # for filtering or reranking.
             self.assertEqual([case.case_id for case in result.similar_cases], ["ptbxl_00003_hr"])
             self.assertEqual(len(result.similar_cases), 1)
             self.assertTrue(all(case.case_id != "ptbxl_00001_hr" for case in result.similar_cases))
