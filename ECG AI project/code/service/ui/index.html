@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECG 本地推理</title>
+<style>
+:root{
+  --bg:#f5f7fa;
+  --surface:#ffffff;
+  --surface-2:#f9fbfd;
+  --line:#d9e0e8;
+  --line-strong:#b9c5d1;
+  --text:#1d2733;
+  --muted:#687586;
+  --accent:#0f766e;
+  --accent-strong:#0b5f59;
+  --accent-soft:#e6f4f2;
+  --warn:#a16207;
+  --warn-soft:#fff7df;
+  --danger:#b42318;
+  --danger-soft:#fff0ed;
+  --ok:#166534;
+  --ok-soft:#ecfdf3;
+  --shadow:0 14px 34px rgba(25,38,54,.08);
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,"Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,"Microsoft YaHei",Arial,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+}
+button,input,select{font:inherit}
+button{
+  border:0;
+  border-radius:8px;
+  background:var(--accent);
+  color:white;
+  min-height:40px;
+  padding:0 16px;
+  cursor:pointer;
+  font-weight:650;
+}
+button:hover{background:var(--accent-strong)}
+button:disabled{cursor:not-allowed;opacity:.65}
+input,select{
+  width:100%;
+  min-height:40px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:white;
+  color:var(--text);
+  padding:8px 10px;
+}
+input:focus,select:focus,button:focus-visible{
+  outline:3px solid rgba(15,118,110,.18);
+  outline-offset:1px;
+}
+.app{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+.topbar{
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:1180px;
+  margin:0 auto;
+  padding:18px 24px;
+  display:flex;
+  gap:18px;
+  align-items:center;
+  justify-content:space-between;
+}
+.brand h1{
+  margin:0;
+  font-size:22px;
+  line-height:1.2;
+  letter-spacing:0;
+}
+.brand .sub{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:13px;
+}
+.status-strip{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  min-height:30px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface-2);
+  color:var(--muted);
+  padding:4px 9px;
+  font-size:13px;
+  white-space:nowrap;
+}
+.chip.ok{background:var(--ok-soft);border-color:#b7e4c7;color:var(--ok)}
+.chip.warn{background:var(--warn-soft);border-color:#f2d27a;color:var(--warn)}
+.chip.danger{background:var(--danger-soft);border-color:#ffc3bd;color:var(--danger)}
+.shell{
+  width:100%;
+  max-width:1180px;
+  margin:0 auto;
+  padding:22px 24px 30px;
+  display:grid;
+  grid-template-columns:minmax(300px,390px) minmax(0,1fr);
+  gap:18px;
+}
+.panel{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:8px;
+  box-shadow:var(--shadow);
+  min-width:0;
+}
+.panel-head{
+  padding:16px 18px 12px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.panel-title{
+  margin:0;
+  font-size:16px;
+  line-height:1.25;
+  letter-spacing:0;
+}
+.panel-body{padding:18px}
+.tabs{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+  padding:6px;
+  background:#edf2f7;
+  border:1px solid var(--line);
+  border-radius:8px;
+  margin-bottom:16px;
+}
+.tab{
+  min-height:38px;
+  border-radius:6px;
+  background:transparent;
+  color:var(--muted);
+  padding:0 10px;
+}
+.tab:hover{background:#dde7ef;color:var(--text)}
+.tab.active{
+  background:white;
+  color:var(--text);
+  box-shadow:0 1px 4px rgba(22,34,45,.12);
+}
+.pane{display:none}
+.pane.active{display:block}
+.field{margin-bottom:14px}
+.field label{
+  display:block;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:650;
+  margin-bottom:6px;
+}
+.field-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:end;
+}
+.actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-top:4px;
+}
+.secondary{
+  background:white;
+  border:1px solid var(--line-strong);
+  color:var(--text);
+}
+.secondary:hover{background:#f0f4f8}
+.file-line{
+  margin-top:8px;
+  min-height:22px;
+  color:var(--muted);
+  font-size:13px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.backend-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+.metric{
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface-2);
+  padding:10px;
+}
+.metric .k{
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:4px;
+}
+.metric .v{
+  font-size:15px;
+  font-weight:700;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.result-empty{
+  color:var(--muted);
+  border:1px dashed var(--line-strong);
+  border-radius:8px;
+  min-height:260px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:22px;
+  background:var(--surface-2);
+}
+.summary{
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(180px,.8fr);
+  gap:12px;
+  margin-bottom:14px;
+}
+.summary-main{
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface-2);
+  padding:14px;
+  min-width:0;
+}
+.summary-main.uncertain{
+  background:var(--warn-soft);
+  border-color:#f2d27a;
+}
+.summary-main h2{
+  margin:0 0 8px;
+  font-size:20px;
+  line-height:1.3;
+  letter-spacing:0;
+}
+.summary-main p{
+  margin:0;
+  color:var(--muted);
+}
+.summary-side{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  min-width:0;
+}
+.badges{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  border-radius:8px;
+  background:var(--accent-soft);
+  color:var(--accent-strong);
+  border:1px solid #b7ddd8;
+  padding:3px 8px;
+  font-weight:650;
+  font-size:13px;
+}
+.badge.warn{
+  background:var(--warn-soft);
+  border-color:#f2d27a;
+  color:var(--warn);
+}
+.report{
+  white-space:pre-wrap;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:white;
+  padding:12px;
+  margin-bottom:14px;
+  color:#253242;
+}
+.table-wrap{
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:white;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:620px;
+}
+th,td{
+  border-bottom:1px solid var(--line);
+  padding:9px 10px;
+  text-align:left;
+  vertical-align:middle;
+}
+th{
+  background:#f3f6f9;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:750;
+}
+tr:last-child td{border-bottom:0}
+.prob-cell{
+  display:grid;
+  grid-template-columns:64px minmax(120px,1fr);
+  gap:10px;
+  align-items:center;
+}
+.bar{
+  height:8px;
+  border-radius:8px;
+  background:#e7edf3;
+  overflow:hidden;
+}
+.bar span{
+  display:block;
+  height:100%;
+  width:0%;
+  border-radius:8px;
+  background:var(--accent);
+}
+.hit{
+  display:inline-flex;
+  min-width:42px;
+  justify-content:center;
+  border-radius:8px;
+  padding:2px 8px;
+  font-size:12px;
+  font-weight:700;
+  background:#eef2f6;
+  color:var(--muted);
+}
+.hit.yes{background:var(--ok-soft);color:var(--ok)}
+.hit.excluded{background:var(--warn-soft);color:var(--warn);min-width:72px}
+.metrics-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  margin-bottom:14px;
+}
+.casebank-block{
+  margin-top:14px;
+}
+.casebank-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
+}
+.casebank-head h3{
+  margin:0;
+  font-size:16px;
+  line-height:1.25;
+  letter-spacing:0;
+}
+.casebank-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.casebank-card{
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:white;
+  overflow:hidden;
+  min-width:0;
+}
+.casebank-card img{
+  display:block;
+  width:100%;
+  aspect-ratio:4 / 3;
+  object-fit:contain;
+  background:#f8fafc;
+  border-bottom:1px solid var(--line);
+}
+.casebank-meta{
+  padding:9px 10px 10px;
+}
+.casebank-title{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  justify-content:space-between;
+  font-weight:750;
+  min-width:0;
+}
+.casebank-title span:first-child{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.casebank-dx{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:5px;
+  min-height:20px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.casebank-labels{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:7px;
+}
+.tiny-badge{
+  border:1px solid var(--line);
+  background:var(--surface-2);
+  border-radius:6px;
+  color:var(--muted);
+  font-size:12px;
+  padding:2px 6px;
+}
+.hidden-input{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+}
+.error-box{
+  border:1px solid #ffc3bd;
+  background:var(--danger-soft);
+  color:#5f1d16;
+  border-radius:8px;
+  padding:14px;
+}
+.error-box strong{
+  display:block;
+  color:var(--danger);
+  margin-bottom:6px;
+}
+.error-box .suggestion{
+  margin-top:8px;
+  color:#4c2d11;
+}
+.error-box pre{
+  white-space:pre-wrap;
+  overflow:auto;
+  margin:10px 0 0;
+  padding:10px;
+  background:white;
+  border:1px solid #ffd1cc;
+  border-radius:8px;
+  color:#5f1d16;
+}
+@media (max-width:900px){
+  .topbar-inner{align-items:flex-start;flex-direction:column}
+  .status-strip{justify-content:flex-start}
+  .shell{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .topbar-inner,.shell{padding-left:14px;padding-right:14px}
+  .field-row,.summary{grid-template-columns:1fr}
+  .actions{flex-direction:column;align-items:stretch}
+  .tabs{grid-template-columns:1fr}
+  button{width:100%}
+  .metrics-grid{grid-template-columns:1fr}
+  .casebank-grid{grid-template-columns:1fr}
+  table{min-width:0}
+  th,td{padding:7px 8px}
+  .prob-cell{
+    grid-template-columns:58px minmax(58px,1fr);
+    gap:7px;
+  }
+  .hit{min-width:34px;padding:2px 6px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <h1>心电图自动分析</h1>
+        <div class="sub">本地 ONNX 推理 · 10 类多标签 · 安全拒判</div>
+      </div>
+      <div class="status-strip" aria-live="polite">
+        <span id="serviceStatus" class="chip">服务读取中</span>
+        <span id="modelStatus" class="chip">模型读取中</span>
+        <span id="thresholdStatus" class="chip">阈值读取中</span>
+        <span id="casebankStatus" class="chip">CaseBank读取中</span>
+        <span id="uncertaintyStatus" class="chip">拒判读取中</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="panel" aria-label="输入">
+      <div class="panel-head">
+        <h2 class="panel-title">输入</h2>
+        <span id="activeMode" class="chip ok">WFDB文件</span>
+      </div>
+      <div class="panel-body">
+        <div class="tabs" role="tablist" aria-label="输入方式">
+          <button id="tabRecord" class="tab active" type="button" role="tab" aria-selected="true">接入WFDB文件</button>
+          <button id="tabImage" class="tab" type="button" role="tab" aria-selected="false">图片上传</button>
+          <button id="tabXml" class="tab" type="button" role="tab" aria-selected="false">接入XML文件</button>
+        </div>
+
+        <div id="paneRecord" class="pane active">
+          <form id="wfdbFileForm">
+            <div class="field">
+              <label for="wfdbFileSummary">WFDB 文件</label>
+              <div class="field-row">
+                <input id="wfdbFileSummary" value="未选择文件" readonly>
+                <button id="openWfdb" class="secondary" type="button">打开文件</button>
+              </div>
+              <input class="hidden-input" type="file" id="wfdbFiles" accept=".hea,.dat,.mat" multiple>
+            </div>
+            <div class="actions">
+              <button id="runWfdb" type="submit">上传并推理</button>
+            </div>
+          </form>
+          <div class="backend-grid">
+            <div class="metric">
+              <div class="k">数据源</div>
+              <div class="v">WFDB 文件</div>
+            </div>
+            <div class="metric">
+              <div class="k">目标长度</div>
+              <div class="v">5000</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="paneImage" class="pane">
+          <form id="imageForm">
+            <div class="field">
+              <label for="img">心电图图片</label>
+              <input type="file" id="img" accept=".png,.jpg,.jpeg,.bmp,.tif,.tiff">
+              <div id="fileName" class="file-line">未选择文件</div>
+            </div>
+            <div class="field">
+              <label for="layout">版式策略</label>
+              <select id="layout">
+                <option value="auto">自动识别（推荐）</option>
+                <option value="3x4">强制 3×4</option>
+                <option value="6x6">强制 6×6（Ahus）</option>
+              </select>
+            </div>
+            <div class="actions">
+              <button id="run2" type="submit">上传并推理</button>
+              <button id="refreshStatus" class="secondary" type="button">刷新状态</button>
+            </div>
+          </form>
+          <div class="backend-grid">
+            <div class="metric">
+              <div class="k">当前后端</div>
+              <div id="backendValue" class="v">读取中</div>
+            </div>
+            <div class="metric">
+              <div class="k">诊断门槛</div>
+              <div id="qualityGate" class="v">读取中</div>
+            </div>
+            <div class="metric">
+              <div class="k">Felix</div>
+              <div id="felixReady" class="v">读取中</div>
+            </div>
+            <div class="metric">
+              <div class="k">Ahus</div>
+              <div id="ahusReady" class="v">读取中</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="paneXml" class="pane">
+          <form id="xmlForm">
+            <div class="field">
+              <label for="xmlFileSummary">心电图 XML</label>
+              <div class="field-row">
+                <input id="xmlFileSummary" value="未选择文件" readonly>
+                <button id="openXml" class="secondary" type="button">打开文件</button>
+              </div>
+              <input class="hidden-input" type="file" id="xmlFile" accept=".xml">
+            </div>
+            <div class="actions">
+              <button id="runXml" type="submit">转换并推理</button>
+              <button id="refreshStatusXml" class="secondary" type="button">刷新状态</button>
+            </div>
+          </form>
+          <div class="backend-grid">
+            <div class="metric">
+              <div class="k">转换链路</div>
+              <div class="v">XML→WFDB</div>
+            </div>
+            <div class="metric">
+              <div class="k">模型输入</div>
+              <div class="v">[12,5000]</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="结果">
+      <div class="panel-head">
+        <h2 class="panel-title">结果</h2>
+        <span id="resultState" class="chip">待运行</span>
+      </div>
+      <div class="panel-body">
+        <div id="resultContent" class="result-empty">等待推理结果</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const els = {
+  serviceStatus: document.getElementById('serviceStatus'),
+  modelStatus: document.getElementById('modelStatus'),
+  thresholdStatus: document.getElementById('thresholdStatus'),
+  casebankStatus: document.getElementById('casebankStatus'),
+  uncertaintyStatus: document.getElementById('uncertaintyStatus'),
+  activeMode: document.getElementById('activeMode'),
+  tabRecord: document.getElementById('tabRecord'),
+  tabImage: document.getElementById('tabImage'),
+  tabXml: document.getElementById('tabXml'),
+  paneRecord: document.getElementById('paneRecord'),
+  paneImage: document.getElementById('paneImage'),
+  paneXml: document.getElementById('paneXml'),
+  wfdbFileForm: document.getElementById('wfdbFileForm'),
+  imageForm: document.getElementById('imageForm'),
+  xmlForm: document.getElementById('xmlForm'),
+  wfdbFiles: document.getElementById('wfdbFiles'),
+  wfdbFileSummary: document.getElementById('wfdbFileSummary'),
+  openWfdb: document.getElementById('openWfdb'),
+  runWfdb: document.getElementById('runWfdb'),
+  run2: document.getElementById('run2'),
+  xmlFile: document.getElementById('xmlFile'),
+  xmlFileSummary: document.getElementById('xmlFileSummary'),
+  openXml: document.getElementById('openXml'),
+  runXml: document.getElementById('runXml'),
+  refreshStatus: document.getElementById('refreshStatus'),
+  refreshStatusXml: document.getElementById('refreshStatusXml'),
+  img: document.getElementById('img'),
+  fileName: document.getElementById('fileName'),
+  layout: document.getElementById('layout'),
+  resultState: document.getElementById('resultState'),
+  resultContent: document.getElementById('resultContent'),
+  backendValue: document.getElementById('backendValue'),
+  qualityGate: document.getElementById('qualityGate'),
+  felixReady: document.getElementById('felixReady'),
+  ahusReady: document.getElementById('ahusReady')
+};
+
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[ch]);
+}
+
+function setChip(el, text, type){
+  el.textContent = text;
+  el.className = `chip${type ? ` ${type}` : ''}`;
+}
+
+function setBusy(button, busy, text){
+  button.disabled = busy;
+  if(busy){
+    button.dataset.label = button.textContent;
+    button.textContent = text;
+  }else if(button.dataset.label){
+    button.textContent = button.dataset.label;
+    delete button.dataset.label;
+  }
+}
+
+function switchPane(mode){
+  const isRecord = mode === 'record';
+  const isImage = mode === 'image';
+  const isXml = mode === 'xml';
+  els.tabRecord.classList.toggle('active', isRecord);
+  els.tabImage.classList.toggle('active', isImage);
+  els.tabXml.classList.toggle('active', isXml);
+  els.tabRecord.setAttribute('aria-selected', String(isRecord));
+  els.tabImage.setAttribute('aria-selected', String(isImage));
+  els.tabXml.setAttribute('aria-selected', String(isXml));
+  els.paneRecord.classList.toggle('active', isRecord);
+  els.paneImage.classList.toggle('active', isImage);
+  els.paneXml.classList.toggle('active', isXml);
+  setChip(els.activeMode, isRecord ? 'WFDB文件' : (isImage ? '图片' : 'XML'), isRecord ? 'ok' : 'warn');
+}
+
+function shortPath(path){
+  const value = String(path || '');
+  const parts = value.split(/[\\/]/);
+  return parts.slice(-1)[0] || value || 'n/a';
+}
+
+const metricLabels = {
+  n_leads:'导联数',
+  original_fs_hz:'原采样率',
+  original_num_samples:'原采样点',
+  converted_fs_hz:'转换采样率',
+  converted_num_samples:'转换采样点',
+  model_shape:'模型shape',
+  model_num_samples:'模型采样点',
+  finite_fraction:'有效值比例',
+  wfdb_record:'WFDB记录',
+  window_policy:'窗口',
+  resample_method:'重采样',
+  uploaded_file_count:'文件数'
+};
+
+function formatMetricValue(value){
+  if(Array.isArray(value)) return `[${value.join(',')}]`;
+  if(typeof value === 'number'){
+    return Number.isInteger(value) ? String(value) : value.toFixed(4);
+  }
+  return String(value ?? 'n/a');
+}
+
+function renderMetricGrid(metrics){
+  const keys = ['n_leads','original_fs_hz','original_num_samples','converted_fs_hz','converted_num_samples','model_shape','finite_fraction','wfdb_record','resample_method'];
+  const rows = keys
+    .filter(key => metrics && Object.prototype.hasOwnProperty.call(metrics, key) && metrics[key] !== '' && metrics[key] != null)
+    .map(key => `<div class="metric"><div class="k">${escapeHtml(metricLabels[key] || key)}</div><div class="v" title="${escapeHtml(formatMetricValue(metrics[key]))}">${escapeHtml(formatMetricValue(metrics[key]))}</div></div>`)
+    .join('');
+  return rows ? `<div class="metrics-grid">${rows}</div>` : '';
+}
+
+function renderCasebank(casebank){
+  const matches = casebank && Array.isArray(casebank.matches) ? casebank.matches : [];
+  if(!casebank || !casebank.enabled){
+    const reason = casebank && casebank.missing_files && casebank.missing_files.length
+      ? `缺少索引文件：${casebank.missing_files.join(', ')}`
+      : 'CaseBank索引未就绪';
+    return `<div class="casebank-block"><div class="error-box"><strong>CaseBank未启用</strong><div class="suggestion">${escapeHtml(reason)}</div></div></div>`;
+  }
+  const cards = matches.map(item => {
+    const labels = Array.isArray(item.labels) ? item.labels : [];
+    const labelBadges = labels.slice(0, 6).map(label => `<span class="tiny-badge">${escapeHtml(label)}</span>`).join('');
+    const pred = Array.isArray(item.predicted_labels) && item.predicted_labels.length
+      ? `<span class="tiny-badge">模型:${escapeHtml(item.predicted_labels.join('|'))}</span>`
+      : '';
+    const score = Number(item.score);
+    const scoreText = Number.isFinite(score) ? score.toFixed(3) : 'n/a';
+    const src = item.source ? ` · ${escapeHtml(item.source)}` : '';
+    return `<article class="casebank-card">
+      <img src="${escapeHtml(item.image_url || '')}" alt="${escapeHtml(item.case_id || 'casebank image')}" loading="lazy">
+      <div class="casebank-meta">
+        <div class="casebank-title"><span>#${escapeHtml(item.rank)} ${escapeHtml(item.case_id || '')}${src}</span><span>${escapeHtml(scoreText)}</span></div>
+        <div class="casebank-dx" title="${escapeHtml(item.true_diagnosis || '')}">${escapeHtml(item.true_diagnosis || 'unmapped')}</div>
+        <div class="casebank-labels">${labelBadges}${pred}${item.label_scope ? `<span class="tiny-badge">${escapeHtml(item.label_scope)}</span>` : ''}</div>
+      </div>
+    </article>`;
+  }).join('');
+  const count = casebank.num_cases != null ? `${Number(casebank.num_cases).toLocaleString()}例` : '索引';
+  const warnings = Array.isArray(casebank.warnings) && casebank.warnings.length
+    ? `<div class="file-line">${escapeHtml(casebank.warnings.join(' | '))}</div>`
+    : '';
+  return `<section class="casebank-block">
+    <div class="casebank-head">
+      <h3>CaseBank 最近10例</h3>
+      <span class="chip ok">${escapeHtml(count)}</span>
+    </div>
+    ${warnings}
+    <div class="casebank-grid">${cards}</div>
+  </section>`;
+}
+
+function renderResult(json){
+  const labelsZh = Array.isArray(json.labels_zh) ? json.labels_zh : [];
+  const labels = Array.isArray(json.labels) ? json.labels : [];
+  const title = labelsZh.length ? labelsZh.join('、') : '未返回标签';
+  const uncertain = Boolean(json.uncertain);
+  setChip(els.resultState, uncertain ? '不确定' : '已完成', uncertain ? 'warn' : 'ok');
+
+  const badges = labelsZh.map((x, idx) => {
+    const code = labels[idx] ? ` ${escapeHtml(labels[idx])}` : '';
+    return `<span class="badge${uncertain ? ' warn' : ''}">${escapeHtml(x)}${code}</span>`;
+  }).join('');
+
+  const maxProb = Number(json.max_prob);
+  const maxProbText = Number.isFinite(maxProb) ? maxProb.toFixed(4) : 'n/a';
+  const source = json.source_zh || ({image:'图片', wfdb:'WFDB记录', wfdb_upload:'WFDB文件', xml:'XML'}[json.source] || json.source || 'n/a');
+  const normNote = json.norm_exclusion_applied
+    ? '<span class="badge warn">NORM互斥排除</span>'
+    : '';
+  const rows = (json.classes || []).map(c => {
+    const p = Number(json.prob && json.prob[c]);
+    const t = Number(json.thresholds && json.thresholds[c]);
+    const pText = Number.isFinite(p) ? p.toFixed(4) : 'n/a';
+    const tText = Number.isFinite(t) ? t.toFixed(4) : 'n/a';
+    const width = Number.isFinite(p) ? Math.max(0, Math.min(100, p * 100)) : 0;
+    const hit = Boolean(json.triggered && json.triggered[c]);
+    const rawHit = Boolean(json.triggered_raw && json.triggered_raw[c]);
+    const excluded = rawHit && !hit;
+    const hitLabel = hit ? '是' : (excluded ? '互斥排除' : '否');
+    const hitClass = hit ? ' yes' : (excluded ? ' excluded' : '');
+    return `<tr>
+      <td>${escapeHtml(c)}</td>
+      <td><div class="prob-cell"><span>${pText}</span><div class="bar"><span style="width:${width.toFixed(1)}%"></span></div></div></td>
+      <td>${tText}</td>
+      <td><span class="hit${hitClass}">${hitLabel}</span></td>
+    </tr>`;
+  }).join('');
+
+  const uncertaintyLine = uncertain && json.uncertainty_message
+    ? `<p>${escapeHtml(json.uncertainty_message)}${json.uncertainty_reason ? ` · ${escapeHtml(json.uncertainty_reason)}` : ''}</p>`
+    : `<p>最高概率：${escapeHtml(json.max_prob_class || 'n/a')} ${escapeHtml(maxProbText)}</p>`;
+
+  els.resultContent.className = '';
+  els.resultContent.innerHTML = `
+    <div class="summary">
+      <div class="summary-main${uncertain ? ' uncertain' : ''}">
+        <h2>${escapeHtml(title)}</h2>
+        ${uncertaintyLine}
+        <div class="badges">${badges}${normNote}</div>
+      </div>
+      <div class="summary-side">
+        <div class="metric"><div class="k">来源</div><div class="v">${escapeHtml(source)}</div></div>
+        <div class="metric"><div class="k">记录</div><div class="v" title="${escapeHtml(json.record)}">${escapeHtml(json.record)}</div></div>
+        <div class="metric"><div class="k">模型</div><div class="v" title="${escapeHtml(json.model_dir)}">${escapeHtml(shortPath(json.model_dir))}</div></div>
+      </div>
+    </div>
+    <div class="report">${escapeHtml(json.text || '')}</div>
+    ${renderMetricGrid(json.input_metrics || {})}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>类别</th><th>概率</th><th>阈值</th><th>触发</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${renderCasebank(json.casebank)}`;
+}
+
+function renderError(detail){
+  let errorCode = 'REQUEST_FAILED';
+  let message = '请求失败';
+  let suggestion = '';
+  let technical = null;
+
+  if(typeof detail === 'string'){
+    message = detail;
+  }else if(detail && typeof detail === 'object'){
+    errorCode = detail.error_code || errorCode;
+    message = detail.message || detail.detail || errorCode;
+    suggestion = detail.suggestion || '';
+    technical = detail.technical_detail || null;
+  }
+
+  setChip(els.resultState, '失败', 'danger');
+  els.resultContent.className = '';
+  els.resultContent.innerHTML = `
+    <div class="error-box">
+      <strong>${escapeHtml(message)}</strong>
+      ${suggestion ? `<div class="suggestion">${escapeHtml(suggestion)}</div>` : ''}
+      <div class="file-line">错误代码：${escapeHtml(errorCode)}</div>
+      ${technical ? `<pre>${escapeHtml(JSON.stringify(technical, null, 2))}</pre>` : ''}
+    </div>`;
+}
+
+async function parseResponse(response){
+  const text = await response.text();
+  try{
+    return JSON.parse(text);
+  }catch(_err){
+    return {detail:text};
+  }
+}
+
+async function inferWFDB(event){
+  event.preventDefault();
+  const files = Array.from(els.wfdbFiles.files || []);
+  if(!files.length){
+    renderError({error_code:'NO_WFDB_SELECTED', message:'请选择WFDB文件。', suggestion:'需要同一条记录的 .hea 文件和对应 .dat 或 .mat 文件。'});
+    return;
+  }
+  const fd = new FormData();
+  files.forEach(file => fd.append('files', file));
+  setBusy(els.runWfdb, true, '上传中');
+  setChip(els.resultState, '运行中', 'warn');
+  try{
+    const r = await fetch('/infer_wfdb_files', {method:'POST', body:fd});
+    const j = await parseResponse(r);
+    if(!r.ok){ renderError(j.detail || j); return; }
+    renderResult(j);
+  }catch(err){
+    renderError({error_code:'NETWORK_ERROR', message:String(err)});
+  }finally{
+    setBusy(els.runWfdb, false);
+  }
+}
+
+async function inferIMAGE(event){
+  event.preventDefault();
+  const file = els.img.files[0];
+  if(!file){
+    renderError({error_code:'NO_IMAGE_SELECTED', message:'请选择心电图图片。'});
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('layout', els.layout.value);
+  setBusy(els.run2, true, '上传中');
+  setChip(els.resultState, '运行中', 'warn');
+  try{
+    const r = await fetch('/infer_image', {method:'POST', body:fd});
+    const j = await parseResponse(r);
+    if(!r.ok){ renderError(j.detail || j); return; }
+    renderResult(j);
+  }catch(err){
+    renderError({error_code:'NETWORK_ERROR', message:String(err)});
+  }finally{
+    setBusy(els.run2, false);
+  }
+}
+
+async function inferXML(event){
+  event.preventDefault();
+  const file = els.xmlFile.files[0];
+  if(!file){
+    renderError({error_code:'NO_XML_SELECTED', message:'请选择心电图XML文件。'});
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', file);
+  setBusy(els.runXml, true, '转换中');
+  setChip(els.resultState, '运行中', 'warn');
+  try{
+    const r = await fetch('/infer_xml', {method:'POST', body:fd});
+    const j = await parseResponse(r);
+    if(!r.ok){ renderError(j.detail || j); return; }
+    renderResult(j);
+  }catch(err){
+    renderError({error_code:'NETWORK_ERROR', message:String(err)});
+  }finally{
+    setBusy(els.runXml, false);
+  }
+}
+
+async function loadStatus(){
+  try{
+    const healthRes = await fetch('/health');
+    const health = await healthRes.json();
+    setChip(els.serviceStatus, health.status === 'ok' ? '服务正常' : '服务异常', health.status === 'ok' ? 'ok' : 'danger');
+    setChip(els.modelStatus, shortPath(health.model_dir), 'ok');
+    els.modelStatus.title = health.model_dir || '';
+    const thresholds = health.thresholds || {};
+    const thresholdText = Object.entries(thresholds)
+      .map(([key, value]) => `${key}=${Number(value).toFixed(3)}`)
+      .join(' · ');
+    setChip(els.thresholdStatus, `阈值 ${Object.keys(thresholds).length}项`, 'ok');
+    els.thresholdStatus.title = `${health.thresholds_json || ''}\n${thresholdText}`;
+    const casebank = health.casebank || {};
+    if(casebank.enabled){
+      const n = casebank.num_cases != null ? Number(casebank.num_cases).toLocaleString() : '可用';
+      setChip(els.casebankStatus, `CaseBank ${n}`, 'ok');
+      els.casebankStatus.title = `${casebank.casebank_dir || ''}\n${casebank.build_version || ''}`;
+    }else{
+      setChip(els.casebankStatus, 'CaseBank未建', 'warn');
+      els.casebankStatus.title = (casebank.missing_files || []).join('\n');
+    }
+    const uncertainty = health.uncertainty || {};
+    setChip(els.uncertaintyStatus, uncertainty.enabled ? `拒判 ${Number(uncertainty.max_prob).toFixed(2)}` : '拒判关闭', uncertainty.enabled ? 'warn' : '');
+    const gate = health.digitized_quality_gate || {};
+    els.qualityGate.textContent = gate.min_finite_fraction != null ? Number(gate.min_finite_fraction).toFixed(2) : 'n/a';
+
+    const digitizer = health.digitizer || {};
+    els.backendValue.textContent = digitizer.configured_backend || 'none';
+    els.felixReady.textContent = digitizer.felix && digitizer.felix.ready ? 'ready' : 'not ready';
+    els.ahusReady.textContent = digitizer.ahus && digitizer.ahus.ready ? 'ready' : 'not ready';
+  }catch(err){
+    setChip(els.serviceStatus, '服务读取失败', 'danger');
+    setChip(els.thresholdStatus, '阈值读取失败', 'danger');
+    setChip(els.casebankStatus, 'CaseBank读取失败', 'danger');
+    els.backendValue.textContent = '读取失败';
+    els.felixReady.textContent = '读取失败';
+    els.ahusReady.textContent = '读取失败';
+  }
+}
+
+els.tabRecord.addEventListener('click', () => switchPane('record'));
+els.tabImage.addEventListener('click', () => switchPane('image'));
+els.tabXml.addEventListener('click', () => switchPane('xml'));
+els.openWfdb.addEventListener('click', () => els.wfdbFiles.click());
+els.openXml.addEventListener('click', () => els.xmlFile.click());
+els.wfdbFileForm.addEventListener('submit', inferWFDB);
+els.imageForm.addEventListener('submit', inferIMAGE);
+els.xmlForm.addEventListener('submit', inferXML);
+els.refreshStatus.addEventListener('click', loadStatus);
+els.refreshStatusXml.addEventListener('click', loadStatus);
+els.wfdbFiles.addEventListener('change', () => {
+  const files = Array.from(els.wfdbFiles.files || []);
+  const totalKb = files.reduce((sum, file) => sum + file.size / 1024, 0);
+  els.wfdbFileSummary.value = files.length ? `${files.length}个文件 · ${totalKb.toFixed(1)} KB` : '未选择文件';
+});
+els.xmlFile.addEventListener('change', () => {
+  const file = els.xmlFile.files[0];
+  els.xmlFileSummary.value = file ? `${file.name} · ${(file.size / 1024).toFixed(1)} KB` : '未选择文件';
+});
+els.img.addEventListener('change', () => {
+  const file = els.img.files[0];
+  els.fileName.textContent = file ? `${file.name} · ${(file.size / 1024).toFixed(1)} KB` : '未选择文件';
+});
+loadStatus();
+</script>
+</body>
+</html>

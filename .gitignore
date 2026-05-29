@@ -1,33 +1,75 @@
-# local environment
-.venv/
-.env
-*.log
+study paper/
 
-# Python
+# Local environments/caches and backup files.
+.venv/
 __pycache__/
 *.py[cod]
+*.log
+*.bak
+*.old_*
+*.tmp
+*.ipynb_checkpoints
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.vscode/
+.idea/
 
-# data and model files
-data/ptbxl/
-models/
-models_fine/
-outputs/
-outputs_fine/
-
-# large model/checkpoint files
+# Model artifacts - keep local, do not upload to GitHub.
+/ECG AI project/models/
+/ECG AI project/models_fine/
+/ECG AI project/models_fine_chapman_ft/
+/ECG AI project/models_fine_chapman_hospital_cpsc_ft/
 *.pt
 *.pth
 *.onnx
 *.ckpt
 
-# third-party external tools
-third_party/
+# Hospital/private ECG research data - keep local.
+/ECG AI project/data/ECG/
+/ECG AI project/data/casebank_vector_index/
+/ECG AI project/data/casebank_display_assets/
+/ECG AI project/data/casebank_public_reference/
+/ECG AI project/data/casebank_ptbxl_chapman/
+/ECG AI project/casebank_cache/
+/ECG AI project/data/challenge_2020/
+/ECG AI project/data/chapman/
+/ECG AI project/data/chapman_converted/
+/ECG AI project/data/image_digitizer_eval/
+/ECG AI project/data/ptbxl/
+/ECG AI project/data/compare_chapman_model_accuracy.py
+/ECG AI project/data/compare_ptbxl_model_accuracy.py
+/ECG AI project/data/eval_image_digitizer_backends.py
+/ECG AI project/data/evaluate_real_exported_image_connector.py
+/ECG AI project/data/run_image_digitizer_eval.ps1
+/ECG AI project/data/run_incremental_chapman.ps1
+/ECG AI project/data/train_incremental_chapman.py
+/ECG AI project/data/train_mixed_chapman_hospital_cpsc.py
+/ECG AI project/code/tools/evaluate_mixed_included_full.py
+/ECG AI project/code/tools/apply_qt_qtc_boundary_fix_review1.py
+/ECG AI project/code/tools/build_case_display_index.py
+/ECG AI project/code/tools/build_hospital_ecg_deidentified.py
+/ECG AI project/code/tools/build_hospital_training_pool_review1.py
+/ECG AI project/code/tools/map_hospital_ecg_10class_labels.py
+/ECG AI project/code/tools/split_hospital_training_pool_review1.py
 
-# Windows / IDE
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
+# Internal notes not intended for GitHub public upload.
+/ECG AI project/docs/
+/ECG AI project/ECG_CaseBank_Codex_Implementation_Spec.md
+/ECG AI project/docs/PROJECT_MEMORY.md
+/ECG AI project/docs/CASEBANK_PUBLIC_REFERENCE_HANDOFF.md
+
+# Generated run/evaluation outputs.
+/ECG AI project/outputs/
+/ECG AI project/runs/
+
+# Bundled or cloned third-party external tools are not vendored in this repo.
+/ECG AI project/third_party/
+/ECG AI project/code/paper-ecg/
+
+# Local/debug helper files.
+/ECG AI project/requirements_backup.txt
+/ECG AI project/code/tools/_fix_calc_thr.py
+/ECG AI project/code/ecg_ptbxl_benchmarking/
+/ECG AI project/evaluate_model.py
+/ECG AI project/generate_labels.py

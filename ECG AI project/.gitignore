@@ -1,0 +1,73 @@
+# Local environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+*.bak
+*.old_*
+*.tmp
+*.ipynb_checkpoints
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+
+# Runtime outputs
+outputs/
+logs/
+casebank_cache/
+
+# Model artifacts
+/models/
+/models_fine/
+/models_fine_chapman_ft/
+/models_fine_chapman_hospital_cpsc_ft/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# Hospital/private research data - do not upload to GitHub
+data/ECG/
+data/casebank_vector_index/
+data/casebank_display_assets/
+data/casebank_public_reference/
+data/casebank_ptbxl_chapman/
+data/challenge_2020/
+data/chapman/
+data/chapman_converted/
+data/image_digitizer_eval/
+data/ptbxl/
+data/compare_chapman_model_accuracy.py
+data/compare_ptbxl_model_accuracy.py
+data/eval_image_digitizer_backends.py
+data/evaluate_real_exported_image_connector.py
+data/run_image_digitizer_eval.ps1
+data/run_incremental_chapman.ps1
+data/train_incremental_chapman.py
+data/train_mixed_chapman_hospital_cpsc.py
+code/tools/evaluate_mixed_included_full.py
+code/tools/apply_qt_qtc_boundary_fix_review1.py
+code/tools/build_case_display_index.py
+code/tools/build_hospital_ecg_deidentified.py
+code/tools/build_hospital_training_pool_review1.py
+code/tools/map_hospital_ecg_10class_labels.py
+code/tools/split_hospital_training_pool_review1.py
+
+# Internal implementation notes
+docs/
+ECG_CaseBank_Codex_Implementation_Spec.md
+docs/PROJECT_MEMORY.md
+docs/CASEBANK_PUBLIC_REFERENCE_HANDOFF.md
+
+# Bundled or cloned third-party external tools are not vendored in this repo.
+third_party/
+code/paper-ecg/
+
+# Local/debug helper files.
+requirements_backup.txt
+code/tools/_fix_calc_thr.py
+code/ecg_ptbxl_benchmarking/
+evaluate_model.py
+generate_labels.py

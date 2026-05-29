@@ -1,0 +1,15 @@
+fastapi>=0.116
+uvicorn[standard]>=0.35
+python-multipart>=0.0.20
+numpy>=2.0
+pandas>=2.0
+scipy>=1.13
+scikit-learn>=1.5
+wfdb>=4.1
+torch>=2.0
+onnx>=1.16
+onnxruntime>=1.20
+matplotlib>=3.8
+pillow>=10.0
+opencv-python>=4.10
+PyYAML>=6.0

@@ -1,0 +1,22 @@
+{
+  "build_version": "casebank_empty_shell_2026-05-29",
+  "description": "Public empty CaseBank shell. Contains schema and zero-row placeholder arrays only.",
+  "classes": [
+    "NORM",
+    "MI",
+    "STTC",
+    "LVH",
+    "LBBB",
+    "RBBB",
+    "1AVB",
+    "2AVB",
+    "3AVB",
+    "WPW"
+  ],
+  "num_cases": 0,
+  "retrieval_vector_dim": 85,
+  "retrieval_features": "zscore(probabilities)+zscore(threshold_margins)+zscore(basic_wave_features)",
+  "has_embedding": false,
+  "public_release": true,
+  "contains_real_ecg_or_case_data": false
+}
