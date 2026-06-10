@@ -9,7 +9,7 @@
       "affiliation": "Xiamen Susong Hospital"
     }
   ],
-  "license": "GPL-3.0-or-later",
+  "license": "gpl-3.0-or-later",
   "keywords": [
     "electrocardiography",
     "ECG",
@@ -25,5 +25,5 @@
   ],
   "version": "1.0.0-bmc-submission",
   "access_right": "open",
-  "communities": []
+  "language": "eng"
 }
