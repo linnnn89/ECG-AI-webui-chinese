@@ -1,4 +1,6 @@
 # ECG-AI WebUI Chinese
+<img width="191" height="20" alt="image" src="https://github.com/user-attachments/assets/35a993f3-7455-4342-ab52-a753bcf1de7d" />
+
 
 **English** | [中文](#中文说明)
 
