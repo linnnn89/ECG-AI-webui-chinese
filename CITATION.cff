@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the archived software release DOI and the associated paper when available."
+title: "ECG-AI WebUI Chinese: A locally deployable ECG interpretation workflow"
+authors:
+  - family-names: "Lin"
+    given-names: "Nan"
+    orcid: "https://orcid.org/0009-0007-4831-4585"
+version: "1.0.0-bmc-submission"
+date-released: "2026-06-10"
+url: "https://github.com/linnnn89/ECG-AI-webui-chinese"
+license: "GPL-3.0-or-later"
+keywords:
+  - electrocardiography
+  - ECG
+  - deep learning
+  - clinical decision support
+  - case-based retrieval
+  - ONNX
+  - FastAPI
+  - health informatics
+abstract: "A locally deployable research software workflow for 12-lead ECG interpretation, combining multi-label classification, ONNX-based local inference, FastAPI WebUI deployment, ECG XML/WFDB input support, experimental ECG image digitization, Chinese report generation, uncertainty handling, and local CaseBank similar-case retrieval."
