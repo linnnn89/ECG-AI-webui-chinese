@@ -1,0 +1,29 @@
+{
+  "title": "ECG-AI WebUI Chinese: A locally deployable ECG interpretation workflow",
+  "upload_type": "software",
+  "description": "Source code for a locally deployable 12-lead ECG interpretation workflow combining multi-label classification, ONNX-based local inference, FastAPI WebUI deployment, ECG XML/WFDB input support, experimental ECG image digitization, Chinese report generation, uncertainty handling, and local CaseBank similar-case retrieval. Hospital ECG data, patient-level files, private linkage files, hospital label tables, private CaseBank indices, and non-public model weights are not included.",
+  "creators": [
+    {
+      "name": "Lin, Nan",
+      "orcid": "0009-0007-4831-4585",
+      "affiliation": "Xiamen Susong Hospital"
+    }
+  ],
+  "license": "GPL-3.0-or-later",
+  "keywords": [
+    "electrocardiography",
+    "ECG",
+    "medical AI",
+    "deep learning",
+    "clinical decision support",
+    "case-based retrieval",
+    "ONNX",
+    "FastAPI",
+    "WFDB",
+    "health informatics",
+    "local deployment"
+  ],
+  "version": "1.0.0-bmc-submission",
+  "access_right": "open",
+  "communities": []
+}
